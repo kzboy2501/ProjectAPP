@@ -1,0 +1,8 @@
+{
+  "name": "Remix Quản Lý Cắt Gác Đơn Vị",
+  "description": "Ứng dụng quản lý phân ca cắt gác đơn vị quân đội với thuật toán xoay ca thông minh, xem trước nhiều ngày và lưu trữ lịch sử.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

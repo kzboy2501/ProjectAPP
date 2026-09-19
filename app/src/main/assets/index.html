@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Quản Lý Cắt Gác Đơn Vị</title>
+  <style>
+    :root {
+      --primary: #2d6a4f;
+      --primary-dark: #1b4332;
+      --accent: #52b788;
+      --bg: #f4f6f8;
+      --card-bg: #ffffff;
+      --text: #212529;
+      --border: #dce1e7;
+      --danger: #d90429;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 30px; }
+
+    .header { background: var(--primary); color: white; text-align: center; padding: 15px 10px; font-weight: bold; font-size: 18px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .nav-tabs { display: flex; overflow-x: auto; background: var(--primary-dark); padding: 5px; gap: 4px; }
+    .tab-btn { flex: 1; min-width: 75px; padding: 8px 4px; background: transparent; border: none; color: #b7e4c7; font-weight: bold; cursor: pointer; border-radius: 4px; font-size: 12px; white-space: nowrap; text-align: center; }
+    .tab-btn.active { background: var(--accent); color: white; }
+
+    .container { padding: 12px; max-width: 600px; margin: auto; }
+    .card { background: var(--card-bg); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--border); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .card-title { font-weight: bold; color: var(--primary); font-size: 16px; }
+
+    .btn { padding: 6px 12px; border: none; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-block { display: block; width: 100%; padding: 10px; font-size: 14px; margin-top: 10px; text-align: center; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 13px; }
+    th, td { border: 1px solid var(--border); padding: 7px 4px; text-align: center; }
+    th { background: #e9ecef; color: var(--primary-dark); }
+    input[type="text"], input[type="time"], select { width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+
+    .list-group { list-style: none; margin-top: 8px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #fff; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .list-item:last-child { border-bottom: none; }
+    .badge { background: #e2e8f0; color: #4a5568; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; font-weight: normal; }
+
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--primary-dark); color: white; padding: 10px 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; font-size: 13px; text-align: center; display: none; }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 999; }
+    .modal-box { background: white; padding: 18px; border-radius: 8px; width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+  <div class="header">QUẢN LÝ CẮT GÁC ĐƠN VỊ</div>
+
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('day')">Gác Ngày</button>
+    <button class="tab-btn" onclick="switchTab('night')">Gác Đêm</button>
+    <button class="tab-btn" onclick="switchTab('roster-night')">QS Gác Đêm</button>
+    <button class="tab-btn" onclick="switchTab('alarm')">⏰ Hẹn Giờ</button>
+    <button class="tab-btn" onclick="switchTab('preview')">🔮 Xem Trước</button>
+    <button class="tab-btn" onclick="switchTab('history')">📜 Lịch Sử</button>
+  </div>
+
+  <div class="container">
+    <!-- PANEL: GÁC NGÀY -->
+    <div id="panel-day" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Lịch Gác Ngày</span>
+          <div>
+            <button class="btn btn-secondary" id="btn-edit-day" onclick="toggleEdit('day')">✏️ Sửa</button>
+            <button class="btn btn-primary" onclick="autoAssign('day')">🔄 Xoay ca</button>
+          </div>
+        </div>
+        <table id="table-day">
+          <thead>
+            <tr>
+              <th style="width: 40%;">Ca Gác</th>
+              <th>Người Gác</th>
+              <th class="col-action" style="display:none; width: 40px;">Xóa</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <button class="btn btn-secondary btn-block" id="btn-add-shift-day" style="display:none;" onclick="addShift('day')">+ Thêm khung giờ gác</button>
+        <button class="btn btn-primary btn-block" onclick="saveToday('day')">💾 Lưu bảng gác hôm nay</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 10px;">Quân Số Gác Ngày</div>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <input type="text" id="input-soldier-day" placeholder="Tên đồng chí...">
+          <button class="btn btn-primary" onclick="addSoldier('day')">Thêm</button>
+        </div>
+        <ul class="list-group" id="list-roster-day"></ul>
+      </div>
+    </div>
+
+    <!-- PANEL: GÁC ĐÊM -->
+    <div id="panel-night" class="tab-panel" style="display:none;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Lịch Gác Đêm</span>
+          <div>
+            <button class="btn btn-secondary" id="btn-edit-night" onclick="toggleEdit('night')">✏️ Sửa</button>
+            <button class="btn btn-primary" onclick="autoAssign('night')">🔄 Xoay ca</button>
+          </div>
+        </div>
+        <table id="table-night">
+          <thead>
+            <tr>
+              <th style="width: 40%;">Ca Gác</th>
+              <th>Người Gác</th>
+              <th class="col-action" style="display:none; width: 40px;">Xóa</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <button class="btn btn-secondary btn-block" id="btn-add-shift-night" style="display:none;" onclick="addShift('night')">+ Thêm khung giờ gác</button>
+        <button class="btn btn-primary btn-block" onclick="saveToday('night')">💾 Lưu bảng gác hôm nay</button>
+      </div>
+    </div>
+
+    <!-- PANEL: QUÂN SỐ GÁC ĐÊM -->
+    <div id="panel-roster-night" class="tab-panel" style="display:none;">
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 10px;">Danh Sách Đồng Chí Gác Đêm</div>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <input type="text" id="input-soldier-night" placeholder="Tên đồng chí...">
+          <button class="btn btn-primary" onclick="addSoldier('night')">Thêm</button>
+        </div>
+        <ul class="list-group" id="list-roster-night"></ul>
+      </div>
+    </div>
+
+    <!-- PANEL: HẸN GIỜ & DỮ LIỆU -->
+    <div id="panel-alarm" class="tab-panel" style="display:none;">
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 10px;">⏰ Tự Động Cắt Gác Hằng Ngày</div>
+        <div id="notif-status-badge" style="padding: 8px; font-size: 13px; text-align: center; border-radius: 4px; margin-bottom: 10px; background: #fff3cd; color: #856404; font-weight: bold;">
+          ⚠️ Đang dùng thông báo chuông & rung nội bộ app
+        </div>
+        <button class="btn btn-primary btn-block" onclick="requestNotificationPermission()">🔔 Cấp Quyền Thông Báo Hệ Thống Direct</button>
+        <button class="btn btn-secondary btn-block" onclick="testNotification()">🔊 Thử Chuông & Thông Báo</button>
+        <div style="margin-top: 15px;">
+          <label style="font-size: 13px; font-weight: bold;">Giờ tự động cắt ca hằng ngày:</label>
+          <div style="display: flex; gap: 8px; margin-top: 5px;">
+            <input type="time" id="input-alarm-time" value="16:00">
+            <button class="btn btn-primary" onclick="saveAlarmTime()">Lưu Giờ</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 10px;">📋 Sao Chép & Nhập Dữ Liệu</div>
+        <button class="btn btn-secondary btn-block" onclick="exportData()">Copy Mã Dữ Liệu</button>
+        <textarea id="transfer-data" style="width: 100%; height: 70px; margin-top: 8px; border: 1px solid var(--border); border-radius: 4px; padding: 6px; font-size: 11px;" placeholder="Dán mã dữ liệu vào đây để khôi phục..."></textarea>
+        <button class="btn btn-primary btn-block" onclick="importData()">Nhập Dữ Liệu</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 6px;">⚙️ Quản Lý Bộ Nhớ</div>
+        <p style="font-size: 12px; color: #6c757d; margin-bottom: 10px;">Khôi phục cài đặt gốc và đưa toàn bộ danh sách quân số, ca gác về mặc định ban đầu.</p>
+        <button class="btn btn-danger btn-block" id="btn-clear-all" onclick="clearAllData()">🗑️ Xóa Tất Cả Dữ Liệu (Reset về mặc định)</button>
+      </div>
+    </div>
+
+    <!-- PANEL: XEM TRƯỚC -->
+    <div id="panel-preview" class="tab-panel" style="display:none;">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; gap: 4px;">
+            <button class="btn btn-primary" id="btn-preview-day" onclick="switchPreviewMode('day')">Gác Ngày</button>
+            <button class="btn btn-secondary" id="btn-preview-night" onclick="switchPreviewMode('night')">Gác Đêm</button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 12px;">Xem: <strong id="preview-days-label">3 ngày</strong></span>
+            <button class="btn btn-primary" style="padding: 2px 8px; border-radius: 50%;" onclick="changePreviewDays(1)">+</button>
+            <button class="btn btn-secondary" style="padding: 2px 8px; border-radius: 50%;" onclick="changePreviewDays(-1)">-</button>
+          </div>
+        </div>
+      </div>
+      <div id="preview-cards-container"></div>
+    </div>
+
+    <!-- PANEL: LỊCH SỬ -->
+    <div id="panel-history" class="tab-panel" style="display:none;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Lịch Sử Cắt Gác (Tối đa 7 ngày)</span>
+          <button class="btn btn-primary" onclick="openAddHistoryModal()">+ Thêm lịch sử</button>
+        </div>
+      </div>
+      <div id="history-container"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- MODAL: THÊM LỊCH SỬ -->
+  <div id="modal-add-history" class="modal-overlay">
+    <div class="modal-box">
+      <div class="card-title" style="margin-bottom: 12px;">Thêm Lịch Sử Gác Ngày Trước</div>
+      <div style="margin-bottom: 8px;">
+        <label style="font-size: 12px; font-weight: bold;">Chọn Ngày (dd/MM/yyyy):</label>
+        <input type="text" id="modal-hist-date" placeholder="dd/MM/yyyy">
+      </div>
+      <div style="margin-bottom: 8px;">
+        <label style="font-size: 12px; font-weight: bold;">Loại Ca Gác:</label>
+        <select id="modal-hist-mode" onchange="renderModalShiftList()">
+          <option value="Gác Ngày">Gác Ngày</option>
+          <option value="Gác Đêm">Gác Đêm</option>
+        </select>
+      </div>
+      <div id="modal-shift-container" style="max-height: 250px; overflow-y: auto;"></div>
+      <div style="display: flex; gap: 8px; margin-top: 14px;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeModal()">Hủy</button>
+        <button class="btn btn-primary" style="flex: 1;" onclick="saveManualHistory()">Lưu Lịch Sử</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const defaultShiftsDay = [
+      { time: "06:00 - 08:00", soldier: "" },
+      { time: "08:00 - 10:00", soldier: "" },
+      { time: "10:00 - 12:00", soldier: "" },
+      { time: "12:00 - 14:00", soldier: "" }
+    ];
+
+    const defaultShiftsNight = [
+      { time: "18:00 - 20:00", soldier: "" },
+      { time: "20:00 - 22:00", soldier: "" },
+      { time: "22:00 - 00:00", soldier: "" },
+      { time: "00:00 - 02:00", soldier: "" },
+      { time: "02:00 - 04:00", soldier: "" },
+      { time: "04:00 - 06:00", soldier: "" }
+    ];
+
+    const defaultRosterDay = [
+      { name: "Nguyễn Văn An", offDays: 3 },
+      { name: "Trần Đình Bình", offDays: 3 },
+      { name: "Lê Hoàng Cường", offDays: 2 },
+      { name: "Phạm Quốc Dũng", offDays: 4 },
+      { name: "Võ Minh Đức", offDays: 1 }
+    ];
+
+    const defaultRosterNight = [
+      { name: "Vũ Minh Hải", offDays: 4 },
+      { name: "Hoàng Văn Tuấn", offDays: 3 },
+      { name: "Đỗ Quốc Toàn", offDays: 3 },
+      { name: "Bùi Trọng Nam", offDays: 2 },
+      { name: "Ngô Thành Đạt", offDays: 3 },
+      { name: "Đặng Văn Lâm", offDays: 4 },
+      { name: "Phan Anh Vũ", offDays: 1 },
+      { name: "Trịnh Tiến Dũng", offDays: 2 }
+    ];
+
+    let shiftsDay = [];
+    let shiftsNight = [];
+    let rosterDay = [];
+    let rosterNight = [];
+    let historyData = [];
+    let alarmTime = "16:00";
+    let isEditingDay = false;
+    let isEditingNight = false;
+    let previewMode = 'day';
+    let previewDaysLimit = 3;
+
+    function loadData() {
+      try {
+        const storedRosterNight = localStorage.getItem("rosterNight");
+        rosterNight = storedRosterNight ? JSON.parse(storedRosterNight) : JSON.parse(JSON.stringify(defaultRosterNight));
+
+        const storedRosterDay = localStorage.getItem("rosterDay");
+        rosterDay = storedRosterDay ? JSON.parse(storedRosterDay) : JSON.parse(JSON.stringify(defaultRosterDay));
+
+        const storedShiftsDay = localStorage.getItem("shiftsDay");
+        shiftsDay = storedShiftsDay ? JSON.parse(storedShiftsDay) : JSON.parse(JSON.stringify(defaultShiftsDay));
+
+        const storedShiftsNight = localStorage.getItem("shiftsNight");
+        shiftsNight = storedShiftsNight ? JSON.parse(storedShiftsNight) : JSON.parse(JSON.stringify(defaultShiftsNight));
+
+        const storedHistory = localStorage.getItem("dutyHistory") || localStorage.getItem("historyData");
+        historyData = storedHistory ? JSON.parse(storedHistory) : [];
+
+        const storedAlarm = localStorage.getItem("alarmTime");
+        alarmTime = storedAlarm || "16:00";
+      } catch (e) {
+        console.error("Error in loadData:", e);
+        rosterNight = JSON.parse(JSON.stringify(defaultRosterNight));
+        rosterDay = JSON.parse(JSON.stringify(defaultRosterDay));
+        shiftsDay = JSON.parse(JSON.stringify(defaultShiftsDay));
+        shiftsNight = JSON.parse(JSON.stringify(defaultShiftsNight));
+        historyData = [];
+        alarmTime = "16:00";
+      }
+
+      document.getElementById("input-alarm-time").value = alarmTime;
+      renderAll();
+    }
+
+    function saveData() {
+      localStorage.setItem("rosterNight", JSON.stringify(rosterNight));
+      localStorage.setItem("rosterDay", JSON.stringify(rosterDay));
+      localStorage.setItem("shiftsDay", JSON.stringify(shiftsDay));
+      localStorage.setItem("shiftsNight", JSON.stringify(shiftsNight));
+      localStorage.setItem("dutyHistory", JSON.stringify(historyData.slice(0, 7)));
+      localStorage.setItem("alarmTime", alarmTime);
+    }
+
+    function clearAllData() {
+      if (confirm("Bạn có chắc chắn muốn xóa tất cả dữ liệu danh sách quân số, ca gác và lịch sử để đặt lại về mặc định không?")) {
+        localStorage.clear();
+        loadData();
+        showToast("🗑️ Đã đặt lại tất cả dữ liệu về mặc định!");
+      }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-panel").forEach(p => p.style.display = "none");
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById(`panel-${tabId}`).style.display = "block";
+      const activeBtn = Array.from(document.querySelectorAll(".tab-btn")).find(b => b.getAttribute("onclick").includes(tabId));
+      if (activeBtn) activeBtn.classList.add("active");
+      if (tabId === 'preview') renderPreview();
+    }
+
+    function renderAll() {
+      renderTable('day');
+      renderTable('night');
+      renderRoster('day');
+      renderRoster('night');
+      renderHistory();
+    }
+
+    function renderTable(mode) {
+      const isDay = mode === 'day';
+      const shifts = isDay ? shiftsDay : shiftsNight;
+      const roster = isDay ? rosterDay : rosterNight;
+      const isEditing = isDay ? isEditingDay : isEditingNight;
+      const tbody = document.querySelector(`#table-${mode} tbody`);
+      tbody.innerHTML = "";
+
+      shifts.forEach((shift, index) => {
+        const tr = document.createElement("tr");
+        if (isEditing) {
+          let selectOptions = `<option value="">-- Chọn --</option>`;
+          roster.forEach(sol => {
+            selectOptions += `<option value="${sol.name}" ${shift.soldier === sol.name ? 'selected' : ''}>${sol.name} (${sol.offDays}d)</option>`;
+          });
+          tr.innerHTML = `
+            <td><input type="text" value="${shift.time}" onchange="updateShiftTime('${mode}', ${index}, this.value)"></td>
+            <td><select onchange="updateShiftSoldier('${mode}', ${index}, this.value)">${selectOptions}</select></td>
+            <td><button class="btn btn-danger" style="padding: 2px 6px;" onclick="deleteShift('${mode}', ${index})">✕</button></td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <td>${shift.time}</td>
+            <td style="font-weight: ${shift.soldier ? 'bold' : 'normal'}; color: ${shift.soldier ? '#212529' : '#888'};">
+              ${shift.soldier || '(Trống)'}
+            </td>
+          `;
+        }
+        tbody.appendChild(tr);
+      });
+
+      const actHeaders = document.querySelectorAll(`#table-${mode} .col-action`);
+      actHeaders.forEach(th => th.style.display = isEditing ? "" : "none");
+      document.getElementById(`btn-add-shift-${mode}`).style.display = isEditing ? "block" : "none";
+      document.getElementById(`btn-edit-${mode}`).textContent = isEditing ? "✔ Xong" : "✏️ Sửa";
+    }
+
+    function renderRoster(mode) {
+      const isDay = mode === 'day';
+      const roster = isDay ? rosterDay : rosterNight;
+      const ul = document.getElementById(isDay ? "list-roster-day" : "list-roster-night");
+      ul.innerHTML = "";
+
+      roster.forEach((soldier, index) => {
+        const li = document.createElement("li");
+        li.className = "list-item";
+        li.innerHTML = `
+          <div>
+            <strong>${soldier.name}</strong>
+            <span class="badge">Nghỉ: ${soldier.offDays}d</span>
+            <button class="btn btn-secondary" style="padding: 1px 6px; font-size: 10px; margin-left: 4px;" onclick="adjustOffDays('${mode}', ${index}, 1)">+</button>
+            <button class="btn btn-secondary" style="padding: 1px 6px; font-size: 10px;" onclick="adjustOffDays('${mode}', ${index}, -1)">-</button>
+          </div>
+          <button class="btn btn-danger" style="padding: 3px 8px; font-size: 11px;" onclick="removeSoldier('${mode}', ${index})">Xóa</button>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    function toggleEdit(mode) {
+      if (mode === 'day') isEditingDay = !isEditingDay;
+      else isEditingNight = !isEditingNight;
+      renderTable(mode);
+    }
+
+    function updateShiftTime(mode, index, val) {
+      if (mode === 'day') shiftsDay[index].time = val;
+      else shiftsNight[index].time = val;
+      saveData();
+    }
+
+    function updateShiftSoldier(mode, index, val) {
+      if (mode === 'day') shiftsDay[index].soldier = val;
+      else shiftsNight[index].soldier = val;
+      saveData();
+    }
+
+    function addShift(mode) {
+      if (mode === 'day') shiftsDay.push({ time: "00:00 - 00:00", soldier: "" });
+      else shiftsNight.push({ time: "00:00 - 00:00", soldier: "" });
+      saveData();
+      renderTable(mode);
+    }
+
+    function deleteShift(mode, index) {
+      if (mode === 'day') shiftsDay.splice(index, 1);
+      else shiftsNight.splice(index, 1);
+      saveData();
+      renderTable(mode);
+    }
+
+    function addSoldier(mode) {
+      const input = document.getElementById(mode === 'day' ? "input-soldier-day" : "input-soldier-night");
+      const name = input.value.trim();
+      if (!name) return;
+      const roster = mode === 'day' ? rosterDay : rosterNight;
+      roster.push({ name, offDays: 3 });
+      input.value = "";
+      saveData();
+      renderRoster(mode);
+      renderTable(mode);
+    }
+
+    function removeSoldier(mode, index) {
+      const roster = mode === 'day' ? rosterDay : rosterNight;
+      roster.splice(index, 1);
+      saveData();
+      renderRoster(mode);
+      renderTable(mode);
+    }
+
+    function adjustOffDays(mode, index, delta) {
+      const roster = mode === 'day' ? rosterDay : rosterNight;
+      roster[index].offDays = Math.max(0, (roster[index].offDays || 0) + delta);
+      saveData();
+      renderRoster(mode);
+      renderTable(mode);
+    }
+
+    function assignShiftsSmartly(roster, shifts, modeText) {
+      if (!roster || roster.length === 0 || !shifts || shifts.length === 0) return;
+      let numShifts = shifts.length;
+      let lastShiftMap = {};
+
+      for (let h of historyData) {
+        if (h.mode === modeText && h.shifts) {
+          h.shifts.forEach((s, idx) => {
+            if (s.soldier && lastShiftMap[s.soldier] === undefined) {
+              lastShiftMap[s.soldier] = idx;
+            }
+          });
+        }
+      }
+
+      let sortedRoster = [...roster].sort((a, b) => {
+        let daysA = a.offDays || 0;
+        let daysB = b.offDays || 0;
+        if (daysB !== daysA) return daysB - daysA;
+        let lastA = lastShiftMap[a.name] !== undefined ? lastShiftMap[a.name] : -1;
+        let lastB = lastShiftMap[b.name] !== undefined ? lastShiftMap[b.name] : -1;
+        return lastA - lastB;
+      });
+
+      shifts.forEach(s => s.soldier = "");
+      let maxToAssign = Math.min(sortedRoster.length, numShifts);
+      let candidateList = sortedRoster.slice(0, maxToAssign);
+
+      candidateList.forEach(soldierObj => {
+        let name = soldierObj.name;
+        let lastIdx = lastShiftMap[name];
+        let targetIdx = (lastIdx !== undefined && lastIdx >= 0) ? (lastIdx + 1) % numShifts : 0;
+
+        if (!shifts[targetIdx].soldier) {
+          shifts[targetIdx].soldier = name;
+        } else {
+          for (let offset = 1; offset < numShifts; offset++) {
+            let posIdx = (targetIdx + offset) % numShifts;
+            if (!shifts[posIdx].soldier) { shifts[posIdx].soldier = name; break; }
+            let negIdx = (targetIdx - offset + numShifts) % numShifts;
+            if (!shifts[negIdx].soldier) { shifts[negIdx].soldier = name; break; }
+          }
+        }
+      });
+    }
+
+    function autoAssign(mode) {
+      const isDay = mode === 'day';
+      assignShiftsSmartly(isDay ? rosterDay : rosterNight, isDay ? shiftsDay : shiftsNight, isDay ? "Gác Ngày" : "Gác Đêm");
+      saveData();
+      renderTable(mode);
+      showToast("🔄 Đã cập nhật phân ca tự động!");
+    }
+
+    function saveToday(mode) {
+      const isDay = mode === 'day';
+      const todayStr = new Date().toLocaleDateString('vi-VN');
+      const modeText = isDay ? "Gác Ngày" : "Gác Đêm";
+      const currentShifts = isDay ? shiftsDay : shiftsNight;
+
+      const existingIdx = historyData.findIndex(h => h.date === todayStr && h.mode === modeText);
+      const record = { date: todayStr, mode: modeText, shifts: JSON.parse(JSON.stringify(currentShifts)) };
+
+      if (existingIdx >= 0) historyData[existingIdx] = record;
+      else historyData.unshift(record);
+
+      historyData = historyData.slice(0, 7);
+      saveData();
+      renderHistory();
+      showToast("💾 Đã lưu bảng gác hôm nay vào lịch sử!");
+    }
+
+    function renderHistory() {
+      const container = document.getElementById("history-container");
+      container.innerHTML = "";
+      if (historyData.length === 0) {
+        container.innerHTML = `<div class="card" style="text-align: center; color: gray;">Chưa có lịch sử lưu.</div>`;
+        return;
+      }
+      historyData.forEach(h => {
+        let shiftsHtml = "";
+        h.shifts.forEach(s => {
+          shiftsHtml += `<tr><td>${s.time}</td><td><strong>${s.soldier || '(Trống)'}</strong></td></tr>`;
+        });
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="card-header">
+            <strong>📅 Ngày ${h.date}</strong>
+            <span class="badge">${h.mode}</span>
+          </div>
+          <table><thead><tr><th>Ca Gác</th><th>Người Gác</th></tr></thead><tbody>${shiftsHtml}</tbody></table>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderPreview() {
+      const isDay = previewMode === 'day';
+      const modeText = isDay ? "Gác Ngày" : "Gác Đêm";
+      const baseRoster = isDay ? rosterDay : rosterNight;
+      const baseShifts = isDay ? shiftsDay : shiftsNight;
+      let simRoster = JSON.parse(JSON.stringify(baseRoster));
+      let simHistory = JSON.parse(JSON.stringify(historyData));
+      const container = document.getElementById("preview-cards-container");
+      container.innerHTML = "";
+
+      for (let d = 0; d < previewDaysLimit; d++) {
+        let simDate = new Date();
+        simDate.setDate(simDate.getDate() + d);
+        let dateStr = simDate.toLocaleDateString('vi-VN');
+        let tempShifts = JSON.parse(JSON.stringify(baseShifts));
+        assignShiftsSmartly(simRoster, tempShifts, modeText);
+
+        let dayTitle = d === 0 ? "HÔM NAY" : d === 1 ? "NGÀY MAI" : `NGÀY THỨ ${d + 1}`;
+        let rows = "";
+        tempShifts.forEach(s => {
+          rows += `<tr><td>${s.time}</td><td><strong>${s.soldier || '(Trống)'}</strong></td></tr>`;
+        });
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="card-header">
+            <strong style="color: ${d === 0 ? 'var(--primary)' : 'var(--primary-dark)'}">📅 ${dayTitle} (${dateStr})</strong>
+            <span class="badge">${modeText}</span>
+          </div>
+          <table><thead><tr><th>Ca Gác</th><th>Dự Kiến</th></tr></thead><tbody>${rows}</tbody></table>
+        `;
+        container.appendChild(card);
+
+        let guardedSet = new Set(tempShifts.filter(s => s.soldier).map(s => s.soldier));
+        simHistory.unshift({ date: dateStr, mode: modeText, shifts: tempShifts });
+        simRoster.forEach(s => {
+          if (guardedSet.has(s.name)) s.offDays = 0;
+          else s.offDays = (s.offDays || 0) + 1;
+        });
+      }
+    }
+
+    function switchPreviewMode(mode) {
+      previewMode = mode;
+      document.getElementById("btn-preview-day").className = mode === 'day' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById("btn-preview-night").className = mode === 'night' ? 'btn btn-primary' : 'btn btn-secondary';
+      renderPreview();
+    }
+
+    function changePreviewDays(delta) {
+      previewDaysLimit = Math.max(1, Math.min(5, previewDaysLimit + delta));
+      document.getElementById("preview-days-label").textContent = `${previewDaysLimit} ngày`;
+      renderPreview();
+    }
+
+    function saveAlarmTime() {
+      alarmTime = document.getElementById("input-alarm-time").value;
+      saveData();
+      showToast(`⏰ Đã lưu hẹn giờ: ${alarmTime}`);
+    }
+
+    function exportData() {
+      const dataObj = { rosterNight, rosterDay, shiftsDay, shiftsNight, historyData, alarmTime };
+      const str = JSON.stringify(dataObj);
+      navigator.clipboard.writeText(str).then(() => {
+        showToast("📋 Đã sao chép mã dữ liệu vào bộ nhớ tạm!");
+      }).catch(() => {
+        document.getElementById("transfer-data").value = str;
+        showToast("📋 Hãy copy mã từ ô bên dưới!");
+      });
+    }
+
+    function importData() {
+      const raw = document.getElementById("transfer-data").value.trim();
+      if (!raw) return showToast("⚠️ Vui lòng dán mã dữ liệu!");
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.rosterNight) rosterNight = parsed.rosterNight;
+        if (parsed.rosterDay) rosterDay = parsed.rosterDay;
+        if (parsed.shiftsDay) shiftsDay = parsed.shiftsDay;
+        if (parsed.shiftsNight) shiftsNight = parsed.shiftsNight;
+        if (parsed.historyData || parsed.dutyHistory) historyData = (parsed.historyData || parsed.dutyHistory).slice(0, 7);
+        if (parsed.alarmTime) alarmTime = parsed.alarmTime;
+        saveData();
+        loadData();
+        showToast("📥 Khôi phục dữ liệu thành công!");
+      } catch (e) {
+        showToast("⚠️ Mã dữ liệu không hợp lệ!");
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.style.display = "block";
+      setTimeout(() => { toast.style.display = "none"; }, 3500);
+    }
+
+    function requestNotificationPermission() {
+      if ("Notification" in window) {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted') {
+            document.getElementById("notif-status-badge").textContent = "✓ Đã cấp quyền thông báo hệ thống";
+            document.getElementById("notif-status-badge").style.background = "#d4edda";
+            document.getElementById("notif-status-badge").style.color = "#155724";
+            showToast("✅ Đã bật thông báo hệ thống!");
+          } else {
+            showToast("🔔 Đang sử dụng chế độ chuông nội bộ!");
+          }
+        });
+      } else {
+        showToast("🔔 Chế độ chuông & rung nội bộ đang sẵn sàng!");
+      }
+    }
+
+    function testNotification() {
+      showToast("🔔 Đang thử phát âm thanh & thông báo...");
+    }
+
+    function openAddHistoryModal() {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      document.getElementById("modal-hist-date").value = yesterday.toLocaleDateString('vi-VN');
+      renderModalShiftList();
+      document.getElementById("modal-add-history").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("modal-add-history").style.display = "none";
+    }
+
+    function renderModalShiftList() {
+      const isDay = document.getElementById("modal-hist-mode").value === "Gác Ngày";
+      const shifts = isDay ? shiftsDay : shiftsNight;
+      const roster = isDay ? rosterDay : rosterNight;
+      const container = document.getElementById("modal-shift-container");
+      container.innerHTML = "";
+
+      shifts.forEach((shift, index) => {
+        let options = `<option value="">-- Trống --</option>`;
+        roster.forEach(s => {
+          options += `<option value="${s.name}">${s.name}</option>`;
+        });
+        const row = document.createElement("div");
+        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;";
+        row.innerHTML = `
+          <span>${shift.time}:</span>
+          <select id="modal-select-${index}" style="width: 60%;">${options}</select>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function saveManualHistory() {
+      const dateStr = document.getElementById("modal-hist-date").value.trim();
+      if (!dateStr) return showToast("⚠️ Vui lòng nhập ngày!");
+      const mode = document.getElementById("modal-hist-mode").value;
+      const isDay = mode === "Gác Ngày";
+      const shifts = isDay ? shiftsDay : shiftsNight;
+      const assigned = [];
+
+      shifts.forEach((shift, index) => {
+        const soldier = document.getElementById(`modal-select-${index}`).value;
+        assigned.push({ time: shift.time, soldier: soldier });
+      });
+
+      const existingIdx = historyData.findIndex(h => h.date === dateStr && h.mode === mode);
+      const record = { date: dateStr, mode, shifts: assigned };
+      if (existingIdx >= 0) historyData[existingIdx] = record;
+      else historyData.unshift(record);
+
+      historyData = historyData.slice(0, 7);
+      saveData();
+      closeModal();
+      renderHistory();
+      showToast(`✅ Đã thêm lịch sử ngày ${dateStr}`);
+    }
+
+    // Auto-load all data on page start
+    window.addEventListener("DOMContentLoaded", loadData);
+  </script>
+</body>
+</html>
