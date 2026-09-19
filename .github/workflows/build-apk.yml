@@ -19,10 +19,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 9.3.1  # Đã nâng cấp lên đúng yêu cầu của dự án
+          gradle-version: 9.3.1
           
       - name: Create .env file
         run: cp .env.example .env
+          
+      - name: Generate debug.keystore
+        run: keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
         
       - name: Build Debug APK
         run: gradle assembleDebug --stacktrace --no-configuration-cache -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
