@@ -19,10 +19,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.7  # Khóa phiên bản Gradle để tránh lỗi KSP
+          gradle-version: 8.7
           
+      - name: Create .env file
+        run: cp .env.example .env
+        
       - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+        run: gradle assembleDebug --stacktrace --no-configuration-cache -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
         
       - name: Upload APK
         uses: actions/upload-artifact@v4
